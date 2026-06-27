@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aperçu des Articles</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a73e8">
+    <style>
+        :root {
+            --primary: #1a73e8;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #202124;
+            --text-sec: #5f6368;
+            --border: #dadce0;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+        }
+        .header { text-align: center; max-width: 800px; margin: 0 auto 24px auto; }
+        h1 { font-size: 24px; color: var(--primary); margin-bottom: 16px; }
+
+        /* Barre de filtres */
+        .filter-box {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: var(--text-sec); text-transform: uppercase; }
+        select, input[type="date"] {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+            background-color: #fff;
+            outline: none;
+        }
+
+        /* Onglets */
+        .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn {
+            padding: 8px 16px;
+            border: none;
+            background: #e8eaed;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-sec);
+            transition: all 0.2s;
+        }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        /* Grille d'articles (Système de cases) */
+        .articles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Cartes d'articles */
+        .article-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+        .article-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        
+        .tag {
+            align-self: flex-start;
+            background: #e8f0fe;
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .article-title { font-size: 16px; font-weight: 600; line-height: 1.4; margin: 0 0 12px 0; color: var(--text); }
+        .article-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sec); border-top: 1px solid #f1f3f4; padding-top: 8px; }
+
+        .loader { text-align: center; font-style: italic; color: var(--text-sec); margin-top: 40px; }
+        .no-results { text-align: center; grid-column: 1 / -1; color: var(--text-sec); padding: 40px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>📚 Veille Articles &amp; Revues</h1>
+        
+        <div class="tabs" id="tabs-container">
+            </div>
+    </div>
+
+    <div class="filter-box">
+        <div class="filter-group">
+            <label for="filter-theme">Thématique</label>
+            <select id="filter-theme" onchange="applyFilters()">
+                <option value="all">Toutes les thématiques</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="filter-date">Filtrer par Date</label>
+            <input type="date" id="filter-date" onchange="applyFilters()">
+        </div>
+    </div>
+
+    <div id="loader" class="loader">Chargement et synchronisation avec Google Sheets...</div>
+
+    <div class="articles-grid" id="articles-container" style="display: none;"></div>
+
+    <script>
+        // CONFIGURATION : ID de ton Google Sheet et liste exacte de tes onglets
+        const SHEET_ID = "1ZA0iTpgWHPyQTPZspdyTMtL-TpdPGWMI6WzPNuOvtRs";
+        
+        // AJOUTE ICI le nom exact de tes onglets Google Sheet
+        const TABS = ["Onglet1", "Onglet2", "Onglet3"]; 
+
+        let currentTab = TABS[0];
+        let allArticles = []; // Stocke les articles de l'onglet actif
+
+        // Initialisation de l'application
+        function init() {
+            const tabsContainer = document.getElementById('tabs-container');
+            tabsContainer.innerHTML = "";
+            
+            TABS.forEach((tab, index) => {
+                const btn = document.createElement('button');
+                btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+                btn.innerText = tab;
+                btn.onclick = () => switchTab(tab, btn);
+                tabsContainer.appendChild(btn);
+            });
+
+            fetchSheetData(currentTab);
+        }
+
+        async function switchTab(tabName, element) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            currentTab = tabName;
+            
+            document.getElementById('articles-container').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+            
+            // Réinitialise le filtre thématique lors du changement d'onglet
+            document.getElementById('filter-theme').value = "all";
+            document.getElementById('filter-date').value = "";
+
+            await fetchSheetData(tabName);
+        }
+
+        // Récupération des données via l'export TSV (plus robuste que le CSV pour les titres avec virgules)
+        async function fetchSheetData(tabName) {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+                const response = await fetch(url);
+                const csvText = await response.text();
+                
+                parseCSVData(csvText);
+            } catch (error) {
+                document.getElementById('loader').innerText = "Erreur de synchronisation avec le Google Sheet. Vérifie le partage du lien.";
+                console.error(error);
+            }
+        }
+
+        function parseCSVData(text) {
+            // Découpage propre des lignes CSV en gérant les guillemets
+            const lines = text.split(/\r?\n/);
+            allArticles = [];
+            let headers = [];
+
+            if (lines.length > 0) {
+                // Analyse de la première ligne (headers)
+                headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').toLowerCase().trim());
+            }
+
+            // Index des colonnes cibles : Thématique, source, date, titre, lien
+            const idx = {
+                theme: headers.indexOf("thématique"),
+                source: headers.indexOf("source"),
+                date: headers.indexOf("date"),
+                titre: headers.indexOf("titre"),
+                lien: headers.indexOf("lien")
+            };
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                
+                // Parser de ligne CSV basique mais efficace
+                const matches = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+                const row = matches.map(val => val.replace(/^"|"$/g, '').trim());
+
+                if (row.length > 0) {
+                    allArticles.push({
+                        theme: row[idx.theme] || "Général",
+                        source: row[idx.source] || "Inconnue",
+                        date: row[idx.date] || "",
+                        titre: row[idx.titre] || "Sans titre",
+                        lien: row[idx.lien] || "#"
+                    });
+                }
+            }
+
+            populateThemeFilter();
+            applyFilters();
+        }
+
+        // Remplit dynamiquement le menu déroulant des thématiques selon les articles présents
+        function populateThemeFilter() {
+            const themeSelect = document.getElementById('filter-theme');
+            themeSelect.innerHTML = '<option value="all">Toutes les thématiques</option>';
+            
+            const themes = [...new Set(allArticles.map(a => a.theme))].sort();
+            themes.forEach(theme => {
+                if(theme) {
+                    const opt = document.createElement('option');
+                    opt.value = theme;
+                    opt.innerText = theme;
+                    themeSelect.appendChild(opt);
+                }
+            });
+        }
+
+        // Application combinée des filtres Thématique + Date
+        function applyFilters() {
+            const selectedTheme = document.getElementById('filter-theme').value;
+            const selectedDate = document.getElementById('filter-date').value;
+            
+            const container = document.getElementById('articles-container');
+            container.innerHTML = "";
+
+            const filtered = allArticles.filter(art => {
+                const matchTheme = (selectedTheme === "all" || art.theme === selectedTheme);
+                
+                let matchDate = true;
+                if (selectedDate) {
+                    // Tente de faire correspondre le format de date (YYYY-MM-DD vs format du tableau)
+                    matchDate = art.date.includes(selectedDate) || formatDateToCompare(art.date) === selectedDate;
+                }
+
+                return matchTheme && matchDate;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="no-results">❌ Aucun article ne correspond à ces critères de recherche.</div>`;
+            } else {
+                filtered.forEach(art => {
+                    const card = document.createElement('a');
+                    card.className = "article-card";
+                    card.href = art.lien;
+                    card.target = "_blank"; // Ouvre l'article dans un nouvel onglet
+                    
+                    card.innerHTML = `
+                        <div>
+                            <div class="tag">${art.theme}</div>
+                            <h3 class="article-title">${art.titre}</h3>
+                        </div>
+                        <div class="article-meta">
+                            <span>📰 ${art.source}</span>
+                            <span>📅 ${art.date}</span>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            document.getElementById('loader').style.display = 'none';
+            container.style.display = 'grid';
+        }
+
+        // Aide à la conversion basique des dates si nécessaire
+        function formatDateToCompare(dateStr) {
+            if(!dateStr) return "";
+            // Si ta date est au format DD/MM/YYYY, on la convertit en YYYY-MM-DD
+            const parts = dateStr.split('/');
+            if(parts.length === 3) {
+                return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+            return dateStr;
+        }
+
+        // Démarrage
+        init();
+    </script>
+</body>
+</html>
