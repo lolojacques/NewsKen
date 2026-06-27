@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aperçu des Articles</title>
+    <title>Veille Articles - Mode Hybride</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a73e8">
     <style>
@@ -25,7 +25,6 @@
         .header { text-align: center; max-width: 800px; margin: 0 auto 24px auto; }
         h1 { font-size: 24px; color: var(--primary); margin-bottom: 16px; }
 
-        /* Barre de filtres */
         .filter-box {
             background: var(--card-bg);
             border-radius: 16px;
@@ -51,7 +50,6 @@
             outline: none;
         }
 
-        /* Onglets */
         .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
         .tab-btn {
             padding: 8px 16px;
@@ -66,7 +64,6 @@
         }
         .tab-btn.active { background: var(--primary); color: white; }
 
-        /* Grille d'articles (Système de cases) */
         .articles-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -76,7 +73,6 @@
             width: 100%;
         }
 
-        /* Cartes d'articles */
         .article-card {
             background: var(--card-bg);
             border-radius: 16px;
@@ -114,9 +110,7 @@
 
     <div class="header">
         <h1>📚 Veille Articles &amp; Revues</h1>
-        
-        <div class="tabs" id="tabs-container">
-            </div>
+        <div class="tabs" id="tabs-container"></div>
     </div>
 
     <div class="filter-box">
@@ -132,77 +126,119 @@
         </div>
     </div>
 
-    <div id="loader" class="loader">Chargement et synchronisation avec Google Sheets...</div>
-
+    <div id="loader" class="loader">Synchronisation avec Google Sheets en cours...</div>
     <div class="articles-grid" id="articles-container" style="display: none;"></div>
 
     <script>
-        // CONFIGURATION : ID de ton Google Sheet et liste exacte de tes onglets
         const SHEET_ID = "1ZA0iTpgWHPyQTPZspdyTMtL-TpdPGWMI6WzPNuOvtRs";
         
-        // AJOUTE ICI le nom exact de tes onglets Google Sheet
-        const TABS = ["NEWS", "27-06-2026", "26-06-2026"]; 
+        // PLAN B (Secours) : Liste des dates passées. L'application va tenter de les chercher.
+        // Tu peux ajouter de futures dates ici si la détection automatique échoue sur ton téléphone.
+        const FALLBACK_TABS = ["NEWS", "27-06-2026", "26-06-2026", "25-06-2026", "24-06-2026"];
 
-        let currentTab = TABS[0];
-        let allArticles = []; // Stocke les articles de l'onglet actif
+        let allArticles = [];
 
-        // Initialisation de l'application
-        function init() {
+        function parseTabDate(tabName) {
+            if (tabName.toUpperCase() === "NEWS") return new Date(8640000000000000);
+            const parts = tabName.split('-');
+            if (parts.length === 3) {
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            return new Date(0);
+        }
+
+        async function init() {
+            let tabNames = [];
+            
+            // ---- PLAN A : Tentative de détection automatique sans proxy ----
+            try {
+                const htmlUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/pubhtml`;
+                const response = await fetch(htmlUrl);
+                if (response.ok) {
+                    const htmlText = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    const sheetElements = doc.querySelectorAll('#sheet-menu li a');
+                    sheetElements.forEach(el => tabNames.push(el.innerText.trim()));
+                }
+            } catch (e) {
+                console.log("Plan A restreint, tentative Plan B (Fallback)...");
+            }
+
+            // ---- PLAN B : Si le Plan A a échoué, on prend la liste de secours ----
+            if (tabNames.length === 0) {
+                tabNames = FALLBACK_TABS;
+            }
+
+            // Tri pour avoir toujours NEWS en premier, puis les dates décroissantes
+            tabNames.sort((a, b) => parseTabDate(b) - parseTabDate(a));
+            
+            renderTabs(tabNames);
+        }
+
+        function renderTabs(tabNames) {
             const tabsContainer = document.getElementById('tabs-container');
             tabsContainer.innerHTML = "";
             
-            TABS.forEach((tab, index) => {
+            tabNames.forEach((tab, index) => {
                 const btn = document.createElement('button');
                 btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
                 btn.innerText = tab;
+                btn.id = `btn-${tab}`;
                 btn.onclick = () => switchTab(tab, btn);
                 tabsContainer.appendChild(btn);
             });
 
-            fetchSheetData(currentTab);
+            fetchSheetData(tabNames[0]);
         }
 
         async function switchTab(tabName, element) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
-            currentTab = tabName;
             
             document.getElementById('articles-container').style.display = 'none';
             document.getElementById('loader').style.display = 'block';
+            document.getElementById('loader').innerText = `Chargement des données de l'onglet ${tabName}...`;
             
-            // Réinitialise le filtre thématique lors du changement d'onglet
             document.getElementById('filter-theme').value = "all";
             document.getElementById('filter-date').value = "";
 
             await fetchSheetData(tabName);
         }
 
-        // Récupération des données via l'export TSV (plus robuste que le CSV pour les titres avec virgules)
         async function fetchSheetData(tabName) {
             try {
                 const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
                 const response = await fetch(url);
-                const csvText = await response.text();
                 
+                if (!response.ok && tabName !== "NEWS") {
+                    // Si un onglet de secours n'existe pas encore dans ton fichier réel, on masque le bouton proprement
+                    document.getElementById(`btn-${tabName}`).style.display = 'none';
+                    document.getElementById('loader').innerText = "Sélection d'un autre onglet...";
+                    // Rebondit sur NEWS
+                    switchTab("NEWS", document.getElementById('btn-NEWS'));
+                    return;
+                }
+                
+                const csvText = await response.text();
                 parseCSVData(csvText);
             } catch (error) {
-                document.getElementById('loader').innerText = "Erreur de synchronisation avec le Google Sheet. Vérifie le partage du lien.";
+                document.getElementById('loader').innerText = "Erreur de connexion avec l'onglet demandé.";
                 console.error(error);
             }
         }
 
         function parseCSVData(text) {
-            // Découpage propre des lignes CSV en gérant les guillemets
             const lines = text.split(/\r?\n/);
             allArticles = [];
-            let headers = [];
-
-            if (lines.length > 0) {
-                // Analyse de la première ligne (headers)
-                headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').toLowerCase().trim());
+            
+            if (lines.length <= 1) {
+                applyFilters();
+                return;
             }
 
-            // Index des colonnes cibles : Thématique, source, date, titre, lien
+            const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').toLowerCase().trim());
+
             const idx = {
                 theme: headers.indexOf("thématique"),
                 source: headers.indexOf("source"),
@@ -214,16 +250,29 @@
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
                 
-                // Parser de ligne CSV basique mais efficace
-                const matches = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-                const row = matches.map(val => val.replace(/^"|"$/g, '').trim());
+                const row = [];
+                let insideQuote = false;
+                let entries = "";
+                
+                for (let j = 0; j < lines[i].length; j++) {
+                    const char = lines[i][j];
+                    if (char === '"') {
+                        insideQuote = !insideQuote;
+                    } else if (char === ',' && !insideQuote) {
+                        row.push(entries.trim());
+                        entries = "";
+                    } else {
+                        entries += char;
+                    }
+                }
+                row.push(entries.trim());
 
                 if (row.length > 0) {
                     allArticles.push({
                         theme: row[idx.theme] || "Général",
-                        source: row[idx.source] || "Inconnue",
+                        source: row[idx.source] || "Source",
                         date: row[idx.date] || "",
-                        titre: row[idx.titre] || "Sans titre",
+                        titre: row[idx.titre] || "Article sans titre",
                         lien: row[idx.lien] || "#"
                     });
                 }
@@ -233,23 +282,19 @@
             applyFilters();
         }
 
-        // Remplit dynamiquement le menu déroulant des thématiques selon les articles présents
         function populateThemeFilter() {
             const themeSelect = document.getElementById('filter-theme');
             themeSelect.innerHTML = '<option value="all">Toutes les thématiques</option>';
             
-            const themes = [...new Set(allArticles.map(a => a.theme))].sort();
+            const themes = [...new Set(allArticles.map(a => a.theme))].filter(Boolean).sort();
             themes.forEach(theme => {
-                if(theme) {
-                    const opt = document.createElement('option');
-                    opt.value = theme;
-                    opt.innerText = theme;
-                    themeSelect.appendChild(opt);
-                }
+                const opt = document.createElement('option');
+                opt.value = theme;
+                opt.innerText = theme;
+                themeSelect.appendChild(opt);
             });
         }
 
-        // Application combinée des filtres Thématique + Date
         function applyFilters() {
             const selectedTheme = document.getElementById('filter-theme').value;
             const selectedDate = document.getElementById('filter-date').value;
@@ -259,25 +304,21 @@
 
             const filtered = allArticles.filter(art => {
                 const matchTheme = (selectedTheme === "all" || art.theme === selectedTheme);
-                
                 let matchDate = true;
                 if (selectedDate) {
-                    // Tente de faire correspondre le format de date (YYYY-MM-DD vs format du tableau)
                     matchDate = art.date.includes(selectedDate) || formatDateToCompare(art.date) === selectedDate;
                 }
-
                 return matchTheme && matchDate;
             });
 
             if (filtered.length === 0) {
-                container.innerHTML = `<div class="no-results">❌ Aucun article ne correspond à ces critères de recherche.</div>`;
+                container.innerHTML = `<div class="no-results">❌ Aucun article disponible pour ces critères.</div>`;
             } else {
                 filtered.forEach(art => {
                     const card = document.createElement('a');
                     card.className = "article-card";
                     card.href = art.lien;
-                    card.target = "_blank"; // Ouvre l'article dans un nouvel onglet
-                    
+                    card.target = "_blank";
                     card.innerHTML = `
                         <div>
                             <div class="tag">${art.theme}</div>
@@ -296,10 +337,8 @@
             container.style.display = 'grid';
         }
 
-        // Aide à la conversion basique des dates si nécessaire
         function formatDateToCompare(dateStr) {
             if(!dateStr) return "";
-            // Si ta date est au format DD/MM/YYYY, on la convertit en YYYY-MM-DD
             const parts = dateStr.split('/');
             if(parts.length === 3) {
                 return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
@@ -307,7 +346,6 @@
             return dateStr;
         }
 
-        // Démarrage
         init();
     </script>
 </body>
