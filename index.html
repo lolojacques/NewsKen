@@ -159,29 +159,10 @@
         }
 
         async function init() {
-            let tabNames = [];
-            
-            // ---- PLAN A : Tentative de détection automatique sans proxy ----
-            try {
-                const htmlUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/pubhtml`;
-                const response = await fetch(htmlUrl);
-                if (response.ok) {
-                    const htmlText = await response.text();
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(htmlText, 'text/html');
-                    const sheetElements = doc.querySelectorAll('#sheet-menu li a');
-                    sheetElements.forEach(el => tabNames.push(el.innerText.trim()));
-                }
-            } catch (e) {
-                console.log("Plan A restreint, tentative Plan B (Fallback)...");
-            }
-
-            // ---- PLAN B : Si le Plan A a échoué, on prend la liste de secours ----
-            if (tabNames.length === 0) {
-                tabNames = FALLBACK_TABS;
-            }
-
-            // Tri pour avoir toujours NEWS en premier, puis les dates décroissantes
+            // Génère "NEWS" + les 4 derniers jours glissants
+            let tabNames = getRecentTabDates(4);
+        
+            // Tri pour avoir NEWS en premier, puis les dates décroissantes
             tabNames.sort((a, b) => parseTabDate(b) - parseTabDate(a));
             
             renderTabs(tabNames);
@@ -304,6 +285,23 @@
                 opt.innerText = theme;
                 themeSelect.appendChild(opt);
             });
+        }
+        function getRecentTabDates(count = 4) {
+            const dates = ["NEWS"];
+            const today = new Date();
+        
+            for (let i = 0; i < count; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() - i);
+        
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
+        
+                dates.push(`${day}-${month}-${year}`);
+            }
+        
+            return dates;
         }
         function getThemeImage(theme) {
             const t = theme.toLowerCase();
