@@ -76,18 +76,29 @@
         .article-card {
             background: var(--card-bg);
             border-radius: 16px;
-            padding: 16px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
             border: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            overflow: hidden; /* Important pour les bords arrondis de l'image */
             transition: transform 0.2s, box-shadow 0.2s;
             text-decoration: none;
             color: inherit;
         }
         .article-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        
+        .card-image {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            background-color: #e8eaed;
+        }
+        .card-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            justify-content: space-between;
+        }
         .tag {
             align-self: flex-start;
             background: #e8f0fe;
@@ -96,11 +107,11 @@
             border-radius: 12px;
             font-size: 11px;
             font-weight: 600;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
             text-transform: uppercase;
         }
         .article-title { font-size: 16px; font-weight: 600; line-height: 1.4; margin: 0 0 12px 0; color: var(--text); }
-        .article-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sec); border-top: 1px solid #f1f3f4; padding-top: 8px; }
+        .article-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sec); border-top: 1px solid #f1f3f4; padding-top: 8px; margin-top: auto; }
 
         .loader { text-align: center; font-style: italic; color: var(--text-sec); margin-top: 40px; }
         .no-results { text-align: center; grid-column: 1 / -1; color: var(--text-sec); padding: 40px; }
@@ -294,7 +305,19 @@
                 themeSelect.appendChild(opt);
             });
         }
-
+        function getThemeImage(theme) {
+            const t = theme.toLowerCase();
+            // Collection d'images libres de droits adaptées à tes sujets Kenober / Next Level
+            if (t.includes('neuro') || t.includes('cognition')) return "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=400&q=80"; // Science/Cerveau
+            if (t.includes('formation') || t.includes('pédagogie')) return "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=400&q=80"; // École/Apprentissage
+            if (t.includes('eco') || t.includes('veille') || t.includes('tech')) return "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80"; // Réseau/Data
+            if (t.includes('coop') || t.includes('relation')) return "https://images.unsplash.com/photo-1531535934202-f0d4647f47e2?auto=format&fit=crop&w=400&q=80"; // Équipe/Partage
+            if (t.includes('écologie') || t.includes('transition')) return "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80"; // Nature
+            if (t.includes('santé') || t.includes('mental')) return "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=400&q=80"; // Calme/Bien-être
+            
+            // Image par défaut si aucune catégorie ne matche
+            return "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=400&q=80";
+        }
         function applyFilters() {
             const selectedTheme = document.getElementById('filter-theme').value;
             const selectedDate = document.getElementById('filter-date').value;
@@ -319,14 +342,21 @@
                     card.className = "article-card";
                     card.href = art.lien;
                     card.target = "_blank";
+                    
+                    // Récupération de l'image dynamique
+                    const imageUrl = getThemeImage(art.theme);
+
                     card.innerHTML = `
-                        <div>
-                            <div class="tag">${art.theme}</div>
-                            <h3 class="article-title">${art.titre}</h3>
-                        </div>
-                        <div class="article-meta">
-                            <span>📰 ${art.source}</span>
-                            <span>📅 ${art.date}</span>
+                        <img class="card-image" src="${imageUrl}" alt="${art.theme}" loading="lazy">
+                        <div class="card-content">
+                            <div>
+                                <div class="tag">${art.theme}</div>
+                                <h3 class="article-title">${art.titre}</h3>
+                            </div>
+                            <div class="article-meta">
+                                <span>📰 ${art.source}</span>
+                                <span>📅 ${art.date}</span>
+                            </div>
                         </div>
                     `;
                     container.appendChild(card);
