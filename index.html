@@ -429,6 +429,9 @@
             if (t.includes('écologie') || t.includes('transition')) return basePath + "panneau directionnel.png";[cite: 1]
             // Calme / Bien-être / Santé
             if (t.includes('santé') || t.includes('mental')) return basePath + "tête-coeur-corps.png"; // ou "pause.png"
+            if (t.includes('qualiopi') || t.includes('droit')) return basePath + "loupe.png"; // ou une icône document/certificat
+            if (t.includes('philo') || t.includes('esprit critique')) return basePath + "cerveau.png"; // ou une icône livre
+            if (t.includes('positive')) return basePath + "étoile.png";
             // Image par défaut si aucune catégorie ne matche
             return basePath + "idée.png"; // ou "étoile.png"
         }
