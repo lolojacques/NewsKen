@@ -415,26 +415,20 @@
             const t = theme.toLowerCase();
             
             // Modifie ce chemin selon l'endroit où tu héberges tes images dans ton app (ex: '/assets/pictos/')
-            const basePath = "/chemin/vers/tes/logos/"; 
+            const basePath = "./logos/"; 
         
             // Science / Cerveau
             if (t.includes('neuro') || t.includes('cognition')) return basePath + "cerveau.png";[cite: 1]
-            
             // École / Apprentissage
             if (t.includes('formation') || t.includes('pédagogie')) return basePath + "ateliers.png"; // ou "crayon.png"
-            
             // Réseau / Data / Veille
             if (t.includes('eco') || t.includes('veille') || t.includes('tech')) return basePath + "loupe.png"; // ou "engrenages.png"
-            
             // Équipe / Partage
             if (t.includes('coop') || t.includes('relation')) return basePath + "co-construction.png"; // ou "inclusion.png"
-            
             // Nature / Transition
             if (t.includes('écologie') || t.includes('transition')) return basePath + "panneau directionnel.png";[cite: 1]
-            
             // Calme / Bien-être / Santé
             if (t.includes('santé') || t.includes('mental')) return basePath + "tête-coeur-corps.png"; // ou "pause.png"
-            
             // Image par défaut si aucune catégorie ne matche
             return basePath + "idée.png"; // ou "étoile.png"
         }
