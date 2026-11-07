@@ -5,113 +5,221 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Veille Articles - Mode Hybride</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1a73e8">
+    <meta name="theme-color" content="#ffcc00">
     <style>
         :root {
-            --primary: #1a73e8;
+            /* Palette Kenober & Next Level */
+            --primary: #ffcc00;
+            --primary-dark: #e5b700;
+            --dark: #121214;
+            --dark-surface: #1e1e22;
             --bg: #f8f9fa;
             --card-bg: #ffffff;
-            --text: #202124;
-            --text-sec: #5f6368;
-            --border: #dadce0;
+            --text: #111827;
+            --text-sec: #6b7280;
+            --border: #e5e7eb;
+            --border-hover: rgba(255, 204, 0, 0.6);
+            --icon-bg: #fffdf2;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.03);
+            --shadow-md: 0 8px 20px -3px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 12px 28px -4px rgba(0, 0, 0, 0.1), 0 0 0 1.5px var(--primary);
         }
+
         body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Mesmerize', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 16px;
+            padding: 24px 16px;
+            -webkit-font-smoothing: antialiased;
         }
-        .header { text-align: center; max-width: 800px; margin: 0 auto 24px auto; }
-        h1 { font-size: 24px; color: var(--primary); margin-bottom: 16px; }
 
+        /* --- En-tête --- */
+        .header { 
+            text-align: center; 
+            max-width: 800px; 
+            margin: 0 auto 28px auto; 
+        }
+        h1 { 
+            font-size: 28px; 
+            font-weight: 800; 
+            color: var(--dark); 
+            margin-bottom: 8px; 
+            letter-spacing: -0.5px;
+        }
+        h1::after {
+            content: '';
+            display: block;
+            width: 48px;
+            height: 4px;
+            background: var(--primary);
+            margin: 10px auto 0 auto;
+            border-radius: 2px;
+        }
+
+        /* --- Boîte de filtres --- */
         .filter-box {
             background: var(--card-bg);
             border-radius: 16px;
-            padding: 16px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 24px;
+            padding: 18px 20px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            margin: 0 auto 24px auto;
             max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 16px;
             align-items: center;
         }
-        .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
-        .filter-group label { font-size: 12px; font-weight: 600; color: var(--text-sec); text-transform: uppercase; }
+        .filter-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 6px; 
+            flex: 1; 
+            min-width: 160px; 
+        }
+        .filter-group label { 
+            font-size: 11px; 
+            font-weight: 700; 
+            color: var(--text-sec); 
+            text-transform: uppercase; 
+            letter-spacing: 0.6px;
+        }
         select, input[type="date"] {
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
             font-size: 14px;
+            color: var(--text);
             background-color: #fff;
             outline: none;
+            transition: all 0.2s ease;
+        }
+        select:focus, input[type="date"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.25);
         }
 
-        .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        /* --- Onglets de navigation --- */
+        .tabs { 
+            display: flex; 
+            justify-content: center; 
+            gap: 10px; 
+            margin-bottom: 28px; 
+            flex-wrap: wrap; 
+        }
         .tab-btn {
-            padding: 8px 16px;
-            border: none;
-            background: #e8eaed;
-            border-radius: 20px;
+            padding: 9px 20px;
+            border: 1.5px solid var(--border);
+            background: var(--card-bg);
+            border-radius: 30px;
             cursor: pointer;
-            font-weight: 500;
-            font-size: 14px;
+            font-weight: 600;
+            font-size: 13.5px;
             color: var(--text-sec);
-            transition: all 0.2s;
+            transition: all 0.2s ease;
         }
-        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-btn:hover {
+            color: var(--dark);
+            border-color: var(--primary);
+            background: #fffdf5;
+        }
+        .tab-btn.active { 
+            background: var(--dark); 
+            color: var(--primary); 
+            border-color: var(--dark);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
 
+        /* --- Grille d'articles --- */
         .articles-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+            gap: 22px;
             max-width: 1200px;
             margin: 0 auto;
             width: 100%;
         }
 
+        /* --- Carte d'article adaptée aux icônes --- */
         .article-card {
             background: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-radius: 18px;
+            box-shadow: var(--shadow-sm);
             border: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* Important pour les bords arrondis de l'image */
-            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             text-decoration: none;
             color: inherit;
+            position: relative;
         }
-        .article-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .article-card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: var(--shadow-hover);
+            border-color: var(--primary);
+        }
+
+        /* Écrin pour l'icône carrée (remplace le bandeau photo étiré) */
         .card-image {
-            width: 100%;
-            height: 160px;
-            object-fit: cover;
-            background-color: #e8eaed;
+            width: 52px;
+            height: 52px;
+            object-fit: contain;
+            padding: 10px;
+            background: var(--icon-bg);
+            border: 1.5px solid rgba(255, 204, 0, 0.4);
+            border-radius: 14px;
+            margin: 20px 20px 0 20px;
+            display: block;
+            transition: transform 0.25s ease, background-color 0.25s ease;
         }
+        .article-card:hover .card-image {
+            transform: scale(1.08) rotate(-2deg);
+            background: #fff9db;
+            border-color: var(--primary);
+        }
+
         .card-content {
-            padding: 16px;
+            padding: 16px 20px 20px 20px;
             display: flex;
             flex-direction: column;
             flex-grow: 1;
-            justify-content: space-between;
         }
+        
+        /* Badge thématique */
         .tag {
             align-self: flex-start;
-            background: #e8f0fe;
+            background: var(--dark);
             color: var(--primary);
             padding: 4px 10px;
-            border-radius: 12px;
+            border-radius: 6px;
             font-size: 11px;
-            font-weight: 600;
-            margin-bottom: 8px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
             text-transform: uppercase;
         }
-        .article-title { font-size: 16px; font-weight: 600; line-height: 1.4; margin: 0 0 12px 0; color: var(--text); }
-        .article-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sec); border-top: 1px solid #f1f3f4; padding-top: 8px; margin-top: auto; }
+
+        .article-title { 
+            font-size: 16.5px; 
+            font-weight: 700; 
+            line-height: 1.45; 
+            margin: 0 0 16px 0; 
+            color: var(--dark); 
+        }
+
+        /* Métadonnées de bas de carte */
+        .article-meta { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 12px; 
+            font-weight: 500;
+            color: var(--text-sec); 
+            border-top: 1px dashed var(--border); 
+            padding-top: 12px; 
+            margin-top: auto; 
+        }
 
         .loader { text-align: center; font-style: italic; color: var(--text-sec); margin-top: 40px; }
         .no-results { text-align: center; grid-column: 1 / -1; color: var(--text-sec); padding: 40px; }
@@ -305,16 +413,30 @@
         }
         function getThemeImage(theme) {
             const t = theme.toLowerCase();
-            // Collection d'images libres de droits adaptées à tes sujets Kenober / Next Level
-            if (t.includes('neuro') || t.includes('cognition')) return "https://images.unsplash.com/photo-1507413245164-6160d8298b31?auto=format&fit=crop&w=400&q=80"; // Science/Cerveau
-            if (t.includes('formation') || t.includes('pédagogie')) return "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=400&q=80"; // École/Apprentissage
-            if (t.includes('eco') || t.includes('veille') || t.includes('tech')) return "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80"; // Réseau/Data
-            if (t.includes('coop') || t.includes('relation')) return "https://images.unsplash.com/photo-1531535934202-f0d4647f47e2?auto=format&fit=crop&w=400&q=80"; // Équipe/Partage
-            if (t.includes('écologie') || t.includes('transition')) return "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80"; // Nature
-            if (t.includes('santé') || t.includes('mental')) return "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=400&q=80"; // Calme/Bien-être
+            
+            // Modifie ce chemin selon l'endroit où tu héberges tes images dans ton app (ex: '/assets/pictos/')
+            const basePath = "/chemin/vers/tes/logos/"; 
+        
+            // Science / Cerveau
+            if (t.includes('neuro') || t.includes('cognition')) return basePath + "cerveau.png";[cite: 1]
+            
+            // École / Apprentissage
+            if (t.includes('formation') || t.includes('pédagogie')) return basePath + "ateliers.png"; // ou "crayon.png"
+            
+            // Réseau / Data / Veille
+            if (t.includes('eco') || t.includes('veille') || t.includes('tech')) return basePath + "loupe.png"; // ou "engrenages.png"
+            
+            // Équipe / Partage
+            if (t.includes('coop') || t.includes('relation')) return basePath + "co-construction.png"; // ou "inclusion.png"
+            
+            // Nature / Transition
+            if (t.includes('écologie') || t.includes('transition')) return basePath + "panneau directionnel.png";[cite: 1]
+            
+            // Calme / Bien-être / Santé
+            if (t.includes('santé') || t.includes('mental')) return basePath + "tête-coeur-corps.png"; // ou "pause.png"
             
             // Image par défaut si aucune catégorie ne matche
-            return "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=400&q=80";
+            return basePath + "idée.png"; // ou "étoile.png"
         }
         function applyFilters() {
             const selectedTheme = document.getElementById('filter-theme').value;
